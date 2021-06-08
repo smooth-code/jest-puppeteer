@@ -132,9 +132,48 @@ class PuppeteerEnvironment extends NodeEnvironment {
         }
         await this.global.jestPuppeteer.resetPage()
       },
-    }
+      keepTabOpened: async () => {
+        if (this.global.page) {
+          this.global.page.removeListener('pageerror', handleError)
+        }
+        if (config.browserContext === 'incognito' && this.global.context) {
+          await this.global.context.close()
+        } else if (this.global.page) {
+          await this.global.page.close()
+        }
+        this.global.page = null
 
-    await this.global.jestPuppeteer.resetBrowser()
+        if (this.global.browser) {
+          await this.global.browser.disconnect()
+        }
+
+        this.global.browser = await puppeteer.connect({
+          ...config.connect,
+          ...config.launch,
+          browserURL: undefined,
+          browserWSEndpoint: wsEndpoint,
+        });
+
+        if (config.browserContext === 'incognito') {
+          this.global.context = await this.global.browser.createIncognitoBrowserContext();
+          await this.global.jestPuppeteer.resetPage()
+        } else
+          if (config.browserContext === 'default' || !config.browserContext) {
+            this.global.context = await this.global.browser.browserContexts()[0];
+            const [pageOne,] = await this.global.browser.pages();
+            this.global.page = pageOne;
+          }
+          else {
+            throw new Error(`browserContext should be either 'incognito' or 'default'. Received '${config.browserContext}'`);
+          }
+      },
+    }
+    if (config.keepTabOpen === false) {
+      await this.global.jestPuppeteer.resetBrowser()
+    }
+    else {
+      await this.global.jestPuppeteer.keepTabOpened()
+    }
   }
 
   async teardown() {
@@ -143,17 +182,16 @@ class PuppeteerEnvironment extends NodeEnvironment {
     if (page) {
       page.removeListener('pageerror', handleError)
     }
-
     if (puppeteerConfig.browserContext === 'incognito') {
       if (context) {
         await context.close()
       }
-    } else if (page) {
-      await page.close()
-    }
-
-    if (browser) {
-      await browser.disconnect()
+      else if (page) {
+        await page.close()
+      }
+      if (browser) {
+        await browser.disconnect()
+      }
     }
   }
 }

@@ -9,6 +9,7 @@ module.exports = {
     headless: process.env.CI === 'true',
   },
   browserContext: process.env.INCOGNITO ? 'incognito' : 'default',
+  keepTabOpen: false,
   server: {
     command: `cross-env PORT=${port} node server`,
     port,

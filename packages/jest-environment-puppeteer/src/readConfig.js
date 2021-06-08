@@ -9,6 +9,7 @@ const exists = promisify(fs.exists)
 const DEFAULT_CONFIG = {
   launch: {},
   browserContext: 'default',
+  keepTabOpen: false,
   exitOnPageError: true,
 }
 const DEFAULT_CONFIG_CI = merge(DEFAULT_CONFIG, {
